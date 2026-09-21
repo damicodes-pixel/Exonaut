@@ -1,0 +1,14 @@
+{
+    "project_id": "f131fdca-a2f2-4a43-9211-f71d372182eb",
+    "objective": "Analyze airline disruption propagation",
+    "current_phase": "initialization",
+    "status": "RUNNING",
+    "created_at": "2026-09-21T18:35:09.000804",
+    "updated_at": "2026-09-21T18:35:09.000804",
+    "observations": [],
+    "hypotheses": [],
+    "experiments": [],
+    "artifacts": [],
+    "completed_phases": [],
+    "metadata": {}
+}
