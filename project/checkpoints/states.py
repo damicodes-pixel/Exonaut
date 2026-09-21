@@ -172,6 +172,7 @@ class StateManager:
 
         # Save the initial state to disk.
         self.save_state(project_path, state)
+        self.save_text_mirrors(project_path, state)
 
         # Return the location of the new project
         # and its initial state.
@@ -206,6 +207,283 @@ class StateManager:
         # Return the loaded state.
         return state
 
+    def save_text_mirrors(self, project_path, state):
+
+        # Save the project objective.
+        objective_path = project_path / "objective.txt"
+
+        with open(objective_path, "w") as file:
+            file.write(state.objective)
+
+
+        # Save observations.
+        observations_path = project_path / "observations.txt"
+
+        with open(observations_path, "w") as file:
+
+            for observation in state.observations:
+                file.write(
+                    f"[{observation.timestamp}] "
+                    f"{observation.description}\n"
+                )
+
+
+        # Save hypotheses.
+        hypotheses_path = project_path / "hypotheses.txt"
+
+        with open(hypotheses_path, "w") as file:
+
+            for hypothesis in state.hypotheses:
+                file.write(
+                    f"{hypothesis.description}\n"
+                    f"Status: {hypothesis.status}\n"
+                    f"Confidence: {hypothesis.confidence}\n\n"
+                )
+
+
+        # Save experiments.
+        experiments_path = project_path / "experiments.txt"
+
+        with open(experiments_path, "w") as file:
+
+            for experiment in state.experiments:
+                file.write(
+                    f"Experiment: {experiment.id}\n"
+                    f"Status: {experiment.status}\n"
+                    f"Result: {experiment.result}\n\n"
+                )
+
+
+        # Save artifacts.
+        artifacts_path = project_path / "artifacts.txt"
+
+        with open(artifacts_path, "w") as file:
+
+            for artifact in state.artifacts:
+                file.write(
+                    f"Artifact: {artifact.name}\n"
+                    f"Type: {artifact.type}\n"
+                    f"Path: {artifact.path}\n"
+                    f"Status: {artifact.status}\n\n"
+                )
+    def create_checkpoint(self, project_path, state):
+
+        # Find the checkpoint directory for this project.
+        checkpoints_path = project_path / "checkpoints"
+
+        # Find all existing checkpoint files.
+        existing_checkpoints = list(
+            checkpoints_path.glob("checkpoint_*.json")
+        )
+
+        # Create the number for the new checkpoint.
+        checkpoint_number = len(existing_checkpoints) + 1
+
+        # Build the filename for this checkpoint.
+        checkpoint_filename = (
+            f"checkpoint_{checkpoint_number:03d}.json"
+        )
+
+        # Build the complete path for the checkpoint.
+        checkpoint_path = checkpoints_path / checkpoint_filename
+
+        # Convert the current state into a dictionary.
+        state_dict = asdict(state)
+
+        # Save the state as a historical snapshot.
+        with open(checkpoint_path, "w") as file:
+            json.dump(state_dict, file, indent=4)
+
+        # Return the checkpoint path.
+        return checkpoint_path
+    def add_observation(self, project_path, state, description, source):
+
+        # Create a unique ID for the observation.
+        observation_id = str(uuid.uuid4())
+
+        # Record when the observation was created.
+        timestamp = datetime.now().isoformat()
+
+        # Create the observation object.
+        observation = Observation(
+            id=observation_id,
+            description=description,
+            source=source,
+            timestamp=timestamp
+        )
+
+        # Add the observation to the current state.
+        state.observations.append(observation)
+
+        # Update the time the project state was changed.
+        state.updated_at = timestamp
+
+        # Save the updated state.
+        self.save_state(project_path, state)
+
+        # Update the human-readable state files.
+        self.save_text_mirrors(project_path, state)
+
+        # Return the new observation.
+        return observation
+    def add_hypothesis(
+        self,
+        project_path,
+        state,
+        description,
+        status="ACTIVE",
+        evidence=None,
+        confidence=0.0
+    ):
+
+        # Create a unique ID for the hypothesis.
+        hypothesis_id = str(uuid.uuid4())
+
+        # Create an empty evidence list if none was provided.
+        if evidence is None:
+            evidence = []
+
+        # Create the hypothesis object.
+        hypothesis = Hypothesis(
+            id=hypothesis_id,
+            description=description,
+            status=status,
+            evidence=evidence,
+            confidence=confidence
+        )
+
+        # Add the hypothesis to the current state.
+        state.hypotheses.append(hypothesis)
+
+        # Record when the state changed.
+        state.updated_at = datetime.now().isoformat()
+
+        # Save the updated state.
+        self.save_state(project_path, state)
+
+        # Update the human-readable state files.
+        self.save_text_mirrors(project_path, state)
+
+        # Return the new hypothesis.
+        return hypothesis
+    def add_experiment(
+        self,
+        project_path,
+        state,
+        observation_ids,
+        hypothesis_id,
+        code,
+        result,
+        status="COMPLETED"
+    ):
+
+        # Create a unique ID for the experiment.
+        experiment_id = str(uuid.uuid4())
+
+        # Create the experiment object.
+        experiment = Experiment(
+            id=experiment_id,
+            observation_ids=observation_ids,
+            hypothesis_id=hypothesis_id,
+            code=code,
+            result=result,
+            status=status
+        )
+
+        # Add the experiment to the current state.
+        state.experiments.append(experiment)
+
+        # Record when the state changed.
+        state.updated_at = datetime.now().isoformat()
+
+        # Save the updated state.
+        self.save_state(project_path, state)
+
+        # Update the human-readable state files.
+        self.save_text_mirrors(project_path, state)
+
+        # Return the new experiment.
+        return experiment 
+    def add_artifact(
+        self,
+        project_path,
+        state,
+        artifact_type,
+        name,
+        path,
+        created_by,
+        status="CREATED",
+        observation_ids=None,
+        hypothesis_ids=None,
+        experiment_ids=None
+    ):
+
+        # Create an empty list when no relationships were provided.
+        if observation_ids is None:
+            observation_ids = []
+
+        if hypothesis_ids is None:
+            hypothesis_ids = []
+
+        if experiment_ids is None:
+            experiment_ids = []
+
+        # Create a unique ID for the artifact.
+        artifact_id = str(uuid.uuid4())
+
+        # Create the artifact object.
+        artifact = Artifact(
+            id=artifact_id,
+            type=artifact_type,
+            name=name,
+            path=path,
+            created_by=created_by,
+            status=status,
+            observation_ids=observation_ids,
+            hypothesis_ids=hypothesis_ids,
+            experiment_ids=experiment_ids
+        )
+
+        # Add the artifact to the current state.
+        state.artifacts.append(artifact)
+
+        # Record when the state changed.
+        state.updated_at = datetime.now().isoformat()
+
+        # Save the updated state.
+        self.save_state(project_path, state)
+
+        # Update the human-readable state files.
+        self.save_text_mirrors(project_path, state)
+
+        # Return the new artifact.
+        return artifact
+    def update_phase(self, project_path, state, new_phase):
+
+        # Record the current phase before changing it.
+        previous_phase = state.current_phase
+
+        # Add the previous phase to the completed phases.
+        if previous_phase not in state.completed_phases:
+            state.completed_phases.append(previous_phase)
+
+        # Move the project into the new phase.
+        state.current_phase = new_phase
+
+        # Record when the state changed.
+        state.updated_at = datetime.now().isoformat()
+
+        # Save the updated state.
+        self.save_state(project_path, state)
+
+        # Update the human-readable state files.
+        self.save_text_mirrors(project_path, state)
+
+        # Return the updated state.
+        return state
+
+
+
 
 manager = StateManager("workspace/projects")
 
@@ -220,3 +498,11 @@ print(state)
 
 print("\nLoaded state:")
 print(loaded_state)
+
+checkpoint_path = manager.create_checkpoint(
+    project_path,
+    state
+)
+
+print("\nCheckpoint:")
+print(checkpoint_path)
