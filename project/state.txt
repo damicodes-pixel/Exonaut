@@ -1,0 +1,3 @@
+Current state:
+
+This file tracks the current working status of the project.

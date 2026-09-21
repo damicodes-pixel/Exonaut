@@ -1,0 +1,3 @@
+Working context:
+
+Capture current task context, assumptions, and notes relevant to the active session.

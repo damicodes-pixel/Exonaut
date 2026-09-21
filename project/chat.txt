@@ -1,0 +1,3 @@
+Chat log:
+
+Use this file to record conversations, prompts, and agent exchanges.
